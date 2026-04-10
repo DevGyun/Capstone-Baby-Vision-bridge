@@ -1,0 +1,42 @@
+{
+  "_description": "AI 모델 ↔ 브릿지 ↔ 메인 서버 간 통신 JSON 규격",
+  "_version": "1.0.0",
+
+  "alert_event": {
+    "_comment": "AI가 위험 감지 시 브릿지를 통해 메인 서버로 전송하는 이벤트",
+    "event_type": "ZONE_INTRUSION",
+    "timestamp": "2026-03-31T14:30:00Z",
+    "zone_id": "zone_001",
+    "zone_name": "주방",
+    "detections": [
+      {
+        "class_name": "baby",
+        "confidence": 0.92,
+        "bbox": [120, 200, 280, 450],
+        "center": [200, 400]
+      }
+    ],
+    "frame_id": 14523,
+    "capture_path": "captures/alert_20260331_143000.jpg"
+  },
+
+  "heartbeat": {
+    "_comment": "AI 프로세스가 정상 동작 중임을 알리는 주기적 신호",
+    "event_type": "HEARTBEAT",
+    "timestamp": "2026-03-31T14:30:05Z",
+    "fps": 24.3,
+    "active_zones": 2
+  },
+
+  "zone_sync": {
+    "_comment": "메인 서버가 AI에게 구역 정보를 동기화할 때 사용",
+    "event_type": "ZONE_SYNC",
+    "zones": [
+      {
+        "zone_id": "zone_001",
+        "name": "주방",
+        "points": [[0.1, 0.2], [0.5, 0.2], [0.5, 0.8], [0.1, 0.8]]
+      }
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mediamtx:
+        condition: service_started
+    volumes:
+      - ./api:/app
+
+  vision:
+    build: ./vision
+    env_file:
+      - .env
+    depends_on:
+      api:
+        condition: service_started
+      mediamtx:
+        condition: service_started
+    volumes:
+      - ./vision:/vision
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    ports:
+      - "8554:8554"   # RTSP
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml
+
+volumes:
+  postgres_data:
