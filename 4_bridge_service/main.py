@@ -3,6 +3,7 @@ EyeCatch Bridge Service
 카메라 영상을 MediaMTX로 전송하는 스트리밍 클라이언트
 """
 
+import os
 import cv2
 import subprocess
 import sys
@@ -53,24 +54,22 @@ def main():
     print(f"   출력: {RTSP_OUTPUT_URL}")
     
     ffmpeg_cmd = [
-        'ffmpeg',
-        '-y',  # 덮어쓰기 허용
-        '-f', 'rawvideo',
-        '-pix_fmt', 'bgr24',
-        '-s', f'{actual_width}x{actual_height}',
-        '-r', str(actual_fps),
-        '-i', '-',  # stdin으로 입력받기
-        
-        # 인코딩 설정 (실시간 최적화)
-        '-c:v', 'libx264',
-        '-preset', 'ultrafast',
-        '-tune', 'zerolatency',
-        '-g', str(actual_fps * 2),  # GOP 크기
-        '-b:v', '2000k',  # 비트레이트
-        
-        # RTSP 출력
-        '-f', 'rtsp',
-        RTSP_OUTPUT_URL
+    'ffmpeg',
+    '-y',
+    '-timeout', '5000000',  # 🆕 5초 타임아웃 (마이크로초)
+    '-f', 'rawvideo',
+    '-pix_fmt', 'bgr24',
+    '-s', f'{actual_width}x{actual_height}',
+    '-r', str(actual_fps),
+    '-i', '-',
+    '-c:v', 'libx264',
+    '-preset', 'ultrafast',
+    '-tune', 'zerolatency',
+    '-g', str(actual_fps * 2),
+    '-b:v', '2000k',
+    '-rtsp_transport', 'tcp',  # 🆕 TCP 사용
+    '-f', 'rtsp',
+    RTSP_OUTPUT_URL
     ]
     
     try:
@@ -93,13 +92,13 @@ def main():
     # 3. 스트리밍 시작
     print(f"\n[3/4] 스트리밍 시작!")
     print(f"   앱에서 접속: {RTSP_OUTPUT_URL}")
-    print(f"   종료: Ctrl+C")
+    print(f"   종료: 미리보기 창에서 'q' 키")
     print("=" * 60)
     
     frame_count = 0
     start_time = time.time()
     error_count = 0
-    max_errors = 30  # 연속 30번 실패하면 종료
+    max_errors = 30
     
     try:
         while True:
@@ -116,7 +115,6 @@ def main():
                 time.sleep(0.1)
                 continue
             
-            # 에러 카운트 리셋
             error_count = 0
             
             # FFmpeg로 프레임 전송
@@ -126,6 +124,13 @@ def main():
                 print("❌ [오류] FFmpeg 프로세스가 종료되었습니다.")
                 break
             
+            # q 키 감지
+            #small_frame = cv2.resize(frame, (320, 240))
+            #cv2.imshow('Bridge (Press Q to quit)', small_frame)
+            #if cv2.waitKey(1) & 0xFF == ord('q'):
+            #    print("\n\n[4/4] 'q' 키로 종료를 요청했습니다.")
+            #    break
+            
             frame_count += 1
             
             # 10초마다 상태 출력
@@ -134,9 +139,6 @@ def main():
                 current_fps = frame_count / elapsed if elapsed > 0 else 0
                 print(f"📊 [{frame_count:,} 프레임] {current_fps:.1f} FPS")
     
-    except KeyboardInterrupt:
-        print("\n\n[4/4] 사용자가 종료를 요청했습니다.")
-    
     except Exception as e:
         print(f"\n❌ [오류] 예상치 못한 에러: {e}")
     
@@ -144,6 +146,7 @@ def main():
         # 정리 작업
         print("\n정리 중...")
         cap.release()
+        #cv2.destroyAllWindows()
         
         if ffmpeg_process.stdin:
             ffmpeg_process.stdin.close()
