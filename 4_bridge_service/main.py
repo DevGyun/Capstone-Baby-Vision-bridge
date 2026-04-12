@@ -78,9 +78,26 @@ def main():
             ffmpeg_cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=None  # 🆕 에러 메시지 터미널에 출력
         )
         print("✅ FFmpeg 프로세스 시작 완료!")
+        
+        # 🆕 서버 연결 확인
+        print("⏳ 서버 연결 확인 중...")
+        time.sleep(3)
+        
+        if ffmpeg_process.poll() is not None:
+            print("❌ [오류] 서버에 연결할 수 없습니다!")
+            print(f"서버 주소: {RTSP_OUTPUT_URL}")
+            print("\n확인 사항:")
+            print("  1. MediaMTX 서버가 실행 중인가요?")
+            print("  2. ngrok 터널이 활성화되어 있나요?")
+            print("  3. 서버 주소가 정확한가요?")
+            cap.release()
+            sys.exit(1)
+        
+        print("✅ 서버 연결 성공!")
+        
     except FileNotFoundError:
         print("❌ [오류] FFmpeg를 찾을 수 없습니다.")
         print("\n설치 방법:")
@@ -124,6 +141,7 @@ def main():
                 ffmpeg_process.stdin.write(frame.tobytes())
             except BrokenPipeError:
                 print("❌ [오류] FFmpeg 프로세스가 종료되었습니다.")
+                print("서버 연결이 끊어졌을 수 있습니다.")
                 break
             
             frame_count += 1
@@ -148,7 +166,10 @@ def main():
         if ffmpeg_process.stdin:
             ffmpeg_process.stdin.close()
         
-        ffmpeg_process.wait(timeout=5)
+        try:
+            ffmpeg_process.wait(timeout=5)
+        except:
+            ffmpeg_process.kill()
         
         print("✅ Bridge Service 종료 완료!")
         print("=" * 60)
