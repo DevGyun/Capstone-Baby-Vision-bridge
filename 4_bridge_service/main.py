@@ -69,6 +69,7 @@ def main():
         '-b:v', '2000k',  # 비트레이트
         
         # RTSP 출력
+        '-rtsp_transport', 'tcp',
         '-f', 'rtsp',
         RTSP_OUTPUT_URL
     ]
@@ -78,8 +79,15 @@ def main():
             ffmpeg_cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=None  # 🆕 에러 메시지 터미널에 출력
+            stderr=subprocess.PIPE  # 🆕 에러 메시지 터미널에 출력
         )
+
+        import threading
+        def log_stderr():
+            for line in ffmpeg_process.stderr:
+                print(line.decode(), end='')
+        threading.Thread(target=log_stderr, daemon=True).start()
+
         print("✅ FFmpeg 프로세스 시작 완료!")
         
         # 🆕 서버 연결 확인
