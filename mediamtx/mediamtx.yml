@@ -1,8 +1,0 @@
-hlsAlwaysRemux: no
-rtspAddress: :8554
-api: yes
-apiAddress: :9997
-
-paths:
-  all:
-    source: publisher
