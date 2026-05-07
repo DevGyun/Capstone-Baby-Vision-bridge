@@ -3,3 +3,5 @@ opencv-python-headless==4.8.0.76
 python-dotenv
 
 # 참고: FFmpeg는 시스템에 직접 설치 (apt-get install ffmpeg)
+opencv-python-headless==4.8.0.76
+requests
