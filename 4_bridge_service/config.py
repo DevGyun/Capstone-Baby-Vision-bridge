@@ -36,7 +36,7 @@ CAMERA_SOURCE = detect_camera_source()
 import os
 from dotenv import load_dotenv
 load_dotenv()
-SERVER_URL = os.getenv("SERVER_URL", "http://localhost:8000")
+SERVER_URL = os.getenv("SERVER_URL", "http://211.243.47.179:8000")
 
 # ===== 영상 품질 설정 =====
 TARGET_WIDTH = 640

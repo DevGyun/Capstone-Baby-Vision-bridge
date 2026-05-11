@@ -46,3 +46,4 @@ Thumbs.db
 *.log
 *.tmp
 runs/
+bridge_state.json
