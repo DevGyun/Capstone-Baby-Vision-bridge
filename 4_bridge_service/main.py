@@ -2,10 +2,16 @@
 EyeCatch Bridge Service
 
 흐름:
-1. POST /bridges/register → 6자리 페어링 코드 발급
-2. 터미널에 코드 출력 → 앱에서 코드 입력해서 페어링
-3. GET /bridges/{id}/status 폴링 → paired 되면 stream_url 수신
-4. 해당 stream_url로 FFmpeg 송출 시작
+[최초 실행]
+1. bridge_id 생성 → GET /bridges/{id}/status 확인
+2. 미등록이면 POST /bridges/register → 6자리 페어링 코드 출력
+3. 앱에서 코드 입력해서 페어링
+4. GET /bridges/{id}/status 폴링 → paired 되면 stream_url 수신
+5. FFmpeg 송출 시작
+
+[재실행]
+1. bridge_id 로드 → GET /bridges/{id}/status 확인
+2. 이미 paired면 → 바로 stream_url 받아서 송출 시작
 """
 
 import cv2
@@ -51,13 +57,37 @@ def load_bridge_id() -> str:
 
 
 # ──────────────────────────────────────────
-# STEP 1: 서버에 등록 → 페어링 코드 발급
+# STEP 1: 서버 상태 확인
 # ──────────────────────────────────────────
 
-def register_bridge(bridge_id: str) -> str:
+def check_status(bridge_id: str) -> dict | None:
+    """
+    GET /bridges/{bridge_id}/status
+    → {"status": "paired/pending/expired", "stream_url": ...}
+    서버에 등록 안 된 경우 None 반환
+    """
+    try:
+        resp = requests.get(
+            f"{SERVER_URL}/bridges/{bridge_id}/status",
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            return resp.json()
+        elif resp.status_code == 404:
+            return None  # 미등록
+    except requests.exceptions.ConnectionError:
+        pass
+    return None
+
+
+# ──────────────────────────────────────────
+# STEP 2: 서버에 등록 → 페어링 코드 발급
+# ──────────────────────────────────────────
+
+def register_bridge(bridge_id: str):
     """
     POST /bridges/register
-    → pairing_code (6자리) 반환
+    → pairing_code (6자리) 출력
     """
     print("\n📡 서버에 브릿지 등록 중...")
 
@@ -80,8 +110,8 @@ def register_bridge(bridge_id: str) -> str:
                 print(f"")
                 print(f"  ⏱  유효시간: 10분  ({expires_at[:19] if expires_at else ''})")
                 print("=" * 50 + "\n")
+                return
 
-                return pairing_code
             else:
                 print(f"⚠️  등록 실패 (status: {resp.status_code}), {POLL_INTERVAL}초 후 재시도...")
         except requests.exceptions.ConnectionError:
@@ -91,47 +121,40 @@ def register_bridge(bridge_id: str) -> str:
 
 
 # ──────────────────────────────────────────
-# STEP 2: 앱에서 페어링 될 때까지 폴링
+# STEP 3: 페어링 될 때까지 폴링
 # ──────────────────────────────────────────
 
 def wait_for_pairing(bridge_id: str) -> str:
     """
     GET /bridges/{bridge_id}/status 폴링
-    status == "paired" 되면 stream_url 반환
-    status == "expired" 되면 재등록
+    paired 되면 stream_url 반환
+    expired 되면 재등록 후 다시 대기
     """
     print("⏳ 앱에서 페어링 대기 중...\n")
 
     while True:
-        try:
-            resp = requests.get(
-                f"{SERVER_URL}/bridges/{bridge_id}/status",
-                timeout=5,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                status = data.get("status")
+        data = check_status(bridge_id)
 
-                if status == "paired":
-                    stream_url = data.get("stream_url")
-                    print(f"✅ 페어링 완료!")
-                    print(f"   stream_url: {stream_url}")
-                    return stream_url
+        if data:
+            status = data.get("status")
 
-                elif status == "expired":
-                    print("⚠️  페어링 코드가 만료됐어요. 새 코드를 발급합니다...")
-                    register_bridge(bridge_id)
+            if status == "paired":
+                stream_url = data.get("stream_url")
+                print(f"✅ 페어링 완료!")
+                print(f"   stream_url: {stream_url}")
+                return stream_url
 
-                # pending이면 그냥 대기
+            elif status == "expired":
+                print("⚠️  페어링 코드가 만료됐어요. 새 코드를 발급합니다...")
+                register_bridge(bridge_id)
 
-        except requests.exceptions.ConnectionError:
-            print(f"⚠️  서버 연결 실패, {POLL_INTERVAL}초 후 재시도...")
+            # pending이면 그냥 대기
 
         time.sleep(POLL_INTERVAL)
 
 
 # ──────────────────────────────────────────
-# STEP 3: 카메라 열기
+# STEP 4: 카메라 열기
 # ──────────────────────────────────────────
 
 def open_camera():
@@ -141,7 +164,6 @@ def open_camera():
 
     if not cap.isOpened():
         print(f"❌ 카메라를 열 수 없습니다: {CAMERA_SOURCE}")
-        print("   웹캠: CAMERA_SOURCE = 0 (또는 1, 2)")
         sys.exit(1)
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, TARGET_WIDTH)
@@ -157,7 +179,7 @@ def open_camera():
 
 
 # ──────────────────────────────────────────
-# STEP 4: FFmpeg 송출
+# STEP 5: FFmpeg 송출
 # ──────────────────────────────────────────
 
 def start_streaming(cap, stream_url: str, width: int, height: int, fps: int):
@@ -271,16 +293,24 @@ def main():
     # STEP 0: bridge_id 로드 or 생성
     bridge_id = load_bridge_id()
 
-    # STEP 1: 서버에 등록 → 페어링 코드 발급
-    register_bridge(bridge_id)
+    # STEP 1: 서버 상태 먼저 확인
+    print("\n🔍 서버에서 등록 상태 확인 중...")
+    data = check_status(bridge_id)
 
-    # STEP 2: 앱에서 페어링 될 때까지 폴링
-    stream_url = wait_for_pairing(bridge_id)
+    if data and data.get("status") == "paired":
+        # 이미 페어링된 브릿지 → 바로 송출 시작
+        stream_url = data.get("stream_url")
+        print(f"✅ 이미 등록된 브릿지입니다. 바로 송출을 시작합니다.")
+        print(f"   stream_url: {stream_url}")
+    else:
+        # 미등록 or pending or expired → 등록 + 페어링 대기
+        register_bridge(bridge_id)
+        stream_url = wait_for_pairing(bridge_id)
 
-    # STEP 3: 카메라 열기
+    # STEP 4: 카메라 열기
     cap, width, height, fps = open_camera()
 
-    # STEP 4: 송출 시작
+    # STEP 5: 송출 시작
     start_streaming(cap, stream_url, width, height, fps)
 
 
