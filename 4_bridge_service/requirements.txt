@@ -3,6 +3,9 @@ opencv-python-headless==4.8.0.76
 python-dotenv
 requests
 
-# 참고: FFmpeg는 시스템에 직접 설치 (apt-get install ffmpeg)
-opencv-python-headless==4.8.0.76
-requests
+# BLE 서버 (라즈베리파이 전용)
+# 시스템 패키지도 필요: sudo apt-get install python3-dbus python3-gi bluez
+dbus-python
+PyGObject
+
+# 참고: FFmpeg는 시스템에 직접 설치 (sudo apt-get install ffmpeg)
