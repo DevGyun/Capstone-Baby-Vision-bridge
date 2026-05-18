@@ -111,7 +111,7 @@ class BaseChar(dbus.service.Object):
 # ── Provisioning Characteristic ──────────────────────────────────────
 class ProvisionChar(BaseChar):
     def __init__(self, bus, svc_path):
-        super().__init__(bus, 0, PROVISION_CHAR_UUID, ["write"], svc_path)
+        super().__init__(bus, 0, PROVISION_CHAR_UUID, ["write", "write-without-response"], svc_path)
 
     @dbus.service.method(GATT_CHR, in_signature="aya{sv}")
     def WriteValue(self, value, options):
