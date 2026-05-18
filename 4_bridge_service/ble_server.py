@@ -121,7 +121,8 @@ class ProvisionChar(BaseChar):
         try:
             received_wifi_data = json.loads(raw)
             print(f"✅ ssid={received_wifi_data.get('ssid')}")
-            GLib.idle_add(mainloop.quit)
+            # 메인루프 유지한 채로 별도 스레드에서 처리 (BLE 연결 유지)
+            threading.Thread(target=after_wifi, daemon=False).start()
         except Exception:
             print("❌ JSON 파싱 실패")
 
@@ -225,15 +226,17 @@ def after_wifi():
     password = received_wifi_data["password"]
     time.sleep(1)
     if not connect_wifi(ssid, password):
+        GLib.idle_add(mainloop.quit)
         return
     bid  = load_bridge_id()
     code = register_code(bid)
     if not code:
+        GLib.idle_add(mainloop.quit)
         return
     if _code_chr: _code_chr.send(code)
     print(f"✅ 코드 전송: {code}")
     time.sleep(3)
-    os.execv(sys.executable, [sys.executable, "main.py"])
+    GLib.idle_add(mainloop.quit)
 
 
 # ── Main ─────────────────────────────────────────────────────────────
@@ -287,13 +290,12 @@ def main():
     )
 
     mainloop = GLib.MainLoop()
-    mainloop.run()
+    mainloop.run()  # after_wifi에서 GLib.idle_add(mainloop.quit) 호출할 때까지 유지
 
-    # 와이파이 정보 수신 완료 → 별도 스레드에서 처리
-    if received_wifi_data:
-        t = threading.Thread(target=after_wifi, daemon=False)
-        t.start()
-        t.join()
+    # mainloop 종료 후 main.py 실행
+    print("
+🚀 브릿지 서비스 시작...")
+    os.execv(sys.executable, [sys.executable, "main.py"])
 
 
 if __name__ == "__main__":
