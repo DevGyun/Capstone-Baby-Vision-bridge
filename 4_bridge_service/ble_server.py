@@ -56,7 +56,7 @@ class ProvisioningCharacteristic(ServiceInterface):
     def __init__(self, service_path):
         super().__init__("org.bluez.GattCharacteristic1")
         self._service = service_path
-        self._value   = []
+        self._value   = bytes()
 
     @dbus_property(access=PropertyAccess.READ)
     def UUID(self) -> 's':
@@ -93,7 +93,7 @@ class NotifyCharacteristic(ServiceInterface):
         super().__init__("org.bluez.GattCharacteristic1")
         self._service   = service_path
         self._uuid      = char_uuid
-        self._value     = []
+        self._value     = bytes()
         self._notifying = False
 
     @dbus_property(access=PropertyAccess.READ)
@@ -121,7 +121,7 @@ class NotifyCharacteristic(ServiceInterface):
         self._notifying = False
 
     def send(self, message: str):
-        self._value = list(message.encode("utf-8"))
+        self._value = message.encode("utf-8")
         self.emit_properties_changed({"Value": Variant('ay', self._value)})
 
 
@@ -284,7 +284,7 @@ async def main_async():
                 "UUID":    Variant('s', PROVISION_CHAR_UUID),
                 "Service": Variant('o', SERVICE_PATH),
                 "Flags":   Variant('as', ["write"]),
-                "Value":   Variant('ay', []),
+                "Value":   Variant('ay', bytes()),
             }
         },
         CHAR_PATH_BASE + "1": {
@@ -292,7 +292,7 @@ async def main_async():
                 "UUID":    Variant('s', STATUS_CHAR_UUID),
                 "Service": Variant('o', SERVICE_PATH),
                 "Flags":   Variant('as', ["notify"]),
-                "Value":   Variant('ay', []),
+                "Value":   Variant('ay', bytes()),
             }
         },
         CHAR_PATH_BASE + "2": {
@@ -300,7 +300,7 @@ async def main_async():
                 "UUID":    Variant('s', CODE_CHAR_UUID),
                 "Service": Variant('o', SERVICE_PATH),
                 "Flags":   Variant('as', ["notify"]),
-                "Value":   Variant('ay', []),
+                "Value":   Variant('ay', bytes()),
             }
         },
     }
