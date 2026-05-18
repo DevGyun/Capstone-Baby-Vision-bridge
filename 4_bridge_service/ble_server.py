@@ -267,10 +267,12 @@ def after_wifi():
 def main():
     global mainloop, _status_chr, _code_chr
 
-    subprocess.run(["hciconfig", "hci0", "noscan"], capture_output=True)
-    # Pairing/bonding 비활성화 — 앱에서 OS 페어링 팝업이 뜨지 않도록
-    subprocess.run(["hciconfig", "hci0", "noauth", "noencrypt"], capture_output=True)
-    subprocess.run(["btmgmt", "bondable", "off"], capture_output=True)
+    r1 = subprocess.run(["hciconfig", "hci0", "noscan"], capture_output=True, text=True)
+    print(f"[INIT] hciconfig noscan: rc={r1.returncode} err={r1.stderr.strip()}")
+    r2 = subprocess.run(["hciconfig", "hci0", "noauth", "noencrypt"], capture_output=True, text=True)
+    print(f"[INIT] hciconfig noauth noencrypt: rc={r2.returncode} err={r2.stderr.strip()}")
+    r3 = subprocess.run(["btmgmt", "bondable", "off"], capture_output=True, text=True)
+    print(f"[INIT] btmgmt bondable off: rc={r3.returncode} out={r3.stdout.strip()}")
 
     print("=" * 50)
     print("🔵 EyeCatch BLE Setup 시작")
