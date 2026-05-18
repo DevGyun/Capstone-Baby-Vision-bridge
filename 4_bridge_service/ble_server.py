@@ -125,18 +125,31 @@ class BaseChar(dbus.service.Object):
 class ProvisionChar(BaseChar):
     def __init__(self, bus, svc_path):
         super().__init__(bus, 0, PROVISION_CHAR_UUID, ["write", "write-without-response"], svc_path)
+        self.buffer = ""  # 💡 데이터를 모을 바구니 추가
 
     @dbus.service.method(GATT_CHR, in_signature="aya{sv}")
     def WriteValue(self, value, options):
         global received_wifi_data
-        raw = bytes(value).decode("utf-8")
-        print(f"📥 수신: {raw}")
+        chunk = bytes(value).decode("utf-8")
+        self.buffer += chunk
+        print(f"📥 수신된 조각: {chunk}")
+
         try:
-            received_wifi_data = json.loads(raw)
-            print(f"✅ ssid={received_wifi_data.get('ssid')}")
+            # 💡 바구니에 모인 데이터가 완벽한 JSON인지 확인
+            received_wifi_data = json.loads(self.buffer)
+            print(f"✅ 완전한 JSON 조립 성공: ssid={received_wifi_data.get('ssid')}")
+            
+            # 성공했으니 바구니 비우기
+            self.buffer = ""
+            
+            # 메인루프 유지한 채로 별도 스레드에서 처리
             threading.Thread(target=after_wifi, daemon=False).start()
-        except Exception:
-            print("❌ JSON 파싱 실패")
+        except json.JSONDecodeError:
+            # 💡 아직 덜 왔으면 에러를 내지 않고 다음 조각을 기다림
+            pass
+        except Exception as e:
+            print(f"❌ JSON 파싱 실패: {e}")
+            self.buffer = "" # 예기치 않은 오류 시 버퍼 초기화
 
 
 # ── GATT Service ─────────────────────────────────────────────────────
@@ -265,6 +278,8 @@ def main():
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
+
+    register_agent(bus)
 
     om      = dbus.Interface(bus.get_object(BLUEZ, "/"), DBUS_OM)
     objects = om.GetManagedObjects()
