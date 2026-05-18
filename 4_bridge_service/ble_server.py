@@ -255,6 +255,9 @@ def main():
     global mainloop, _status_chr, _code_chr
 
     subprocess.run(["hciconfig", "hci0", "noscan"], capture_output=True)
+    # Pairing/bonding 비활성화 — 앱에서 OS 페어링 팝업이 뜨지 않도록
+    subprocess.run(["hciconfig", "hci0", "noauth", "noencrypt"], capture_output=True)
+    subprocess.run(["btmgmt", "bondable", "off"], capture_output=True)
 
     print("=" * 50)
     print("🔵 EyeCatch BLE Setup 시작")
