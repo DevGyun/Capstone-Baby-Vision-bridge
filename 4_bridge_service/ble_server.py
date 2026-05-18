@@ -293,8 +293,7 @@ def main():
     mainloop.run()  # after_wifi에서 GLib.idle_add(mainloop.quit) 호출할 때까지 유지
 
     # mainloop 종료 후 main.py 실행
-    print("
-🚀 브릿지 서비스 시작...")
+    print("브릿지 서비스 시작...")
     os.execv(sys.executable, [sys.executable, "main.py"])
 
 
