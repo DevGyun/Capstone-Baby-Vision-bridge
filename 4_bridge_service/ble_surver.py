@@ -4,7 +4,7 @@ EyeCatch BLE Setup Server (라즈베리파이 전용)
 Flutter bridge_ble_service.dart 컨트랙트에 맞춰 구현.
 
 UUID:
-  서비스:        0000eyec-0000-1000-8000-00805f9b34fb
+  서비스:        0000ebec-0000-1000-8000-00805f9b34fb
   와이파이 수신: 0000ec01-0000-1000-8000-00805f9b34fb  (Write)
   상태 알림:     0000ec02-0000-1000-8000-00805f9b34fb  (Notify)
   페어링 코드:   0000ec03-0000-1000-8000-00805f9b34fb  (Notify)
@@ -48,7 +48,7 @@ SERVER_URL = os.getenv("SERVER_URL", "http://localhost:8000")
 BRIDGE_STATE_FILE = "bridge_state.json"
 
 # ── UUID ──
-SERVICE_UUID        = "0000eyec-0000-1000-8000-00805f9b34fb"
+SERVICE_UUID        = "0000ebec-0000-1000-8000-00805f9b34fb"
 PROVISION_CHAR_UUID = "0000ec01-0000-1000-8000-00805f9b34fb"  # 앱→브릿지 (Write)
 STATUS_CHAR_UUID    = "0000ec02-0000-1000-8000-00805f9b34fb"  # 브릿지→앱 (Notify)
 CODE_CHAR_UUID      = "0000ec03-0000-1000-8000-00805f9b34fb"  # 브릿지→앱 (Notify)
