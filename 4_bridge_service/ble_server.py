@@ -38,6 +38,18 @@ def _to_dbus_bytes(s):
     return dbus.Array([dbus.Byte(b) for b in s.encode("utf-8")], signature="y")
 
 
+def _send_status(message):
+    """GLib 메인루프에서 안전하게 상태 전송"""
+    if _status_chr:
+        GLib.idle_add(_status_chr.send, message)
+
+
+def _send_code(code):
+    """GLib 메인루프에서 안전하게 코드 전송"""
+    if _code_chr:
+        GLib.idle_add(_code_chr.send, code)
+
+
 # ── Advertisement ────────────────────────────────────────────────────
 class Advertisement(dbus.service.Object):
     def __init__(self, bus, index):
@@ -106,6 +118,7 @@ class BaseChar(dbus.service.Object):
     def send(self, message):
         self._value = _to_dbus_bytes(message)
         self.PropertiesChanged(GATT_CHR, {"Value": self._value}, [])
+        return False  # GLib.idle_add 콜백은 False 반환해야 1회 실행
 
 
 # ── Provisioning Characteristic ──────────────────────────────────────
@@ -121,7 +134,6 @@ class ProvisionChar(BaseChar):
         try:
             received_wifi_data = json.loads(raw)
             print(f"✅ ssid={received_wifi_data.get('ssid')}")
-            # 메인루프 유지한 채로 별도 스레드에서 처리 (BLE 연결 유지)
             threading.Thread(target=after_wifi, daemon=False).start()
         except Exception:
             print("❌ JSON 파싱 실패")
@@ -168,8 +180,7 @@ class GattService(dbus.service.Object):
 # ── Wi-Fi 연결 ───────────────────────────────────────────────────────
 def connect_wifi(ssid, password):
     print(f"📶 와이파이 연결: {ssid}")
-    if _status_chr:
-        _status_chr.send("wifi_connecting")
+    _send_status("wifi_connecting")
     try:
         subprocess.run(
             ["sudo", "nmcli", "connection", "delete", ssid],
@@ -181,14 +192,14 @@ def connect_wifi(ssid, password):
         )
         if r.returncode == 0:
             print("✅ 와이파이 성공")
-            if _status_chr: _status_chr.send("wifi_ok")
+            _send_status("wifi_ok")
             return True
         print(f"❌ 실패: {r.stderr}")
-        if _status_chr: _status_chr.send("wifi_failed")
+        _send_status("wifi_failed")
         return False
     except Exception as e:
         print(f"❌ 오류: {e}")
-        if _status_chr: _status_chr.send(f"error:{str(e)[:50]}")
+        _send_status(f"error:{str(e)[:50]}")
         return False
 
 
@@ -204,7 +215,7 @@ def load_bridge_id():
 
 
 def register_code(bridge_id):
-    if _status_chr: _status_chr.send("registering")
+    _send_status("registering")
     for _ in range(5):
         try:
             r = requests.post(
@@ -217,7 +228,7 @@ def register_code(bridge_id):
         except Exception as e:
             print(f"⚠️ {e}")
         time.sleep(3)
-    if _status_chr: _status_chr.send("error:server_failed")
+    _send_status("error:server_failed")
     return None
 
 
@@ -233,7 +244,7 @@ def after_wifi():
     if not code:
         GLib.idle_add(mainloop.quit)
         return
-    if _code_chr: _code_chr.send(code)
+    _send_code(code)
     print(f"✅ 코드 전송: {code}")
     time.sleep(3)
     GLib.idle_add(mainloop.quit)
@@ -241,9 +252,9 @@ def after_wifi():
 
 # ── Main ─────────────────────────────────────────────────────────────
 def main():
-    subprocess.run(["hciconfig", "hci0", "noscan"], capture_output=True)
-
     global mainloop, _status_chr, _code_chr
+
+    subprocess.run(["hciconfig", "hci0", "noscan"], capture_output=True)
 
     print("=" * 50)
     print("🔵 EyeCatch BLE Setup 시작")
@@ -252,7 +263,6 @@ def main():
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
 
-    # 어댑터 찾기
     om      = dbus.Interface(bus.get_object(BLUEZ, "/"), DBUS_OM)
     objects = om.GetManagedObjects()
     adapter_path = next(
@@ -262,11 +272,9 @@ def main():
         print("❌ 블루투스 어댑터 없음")
         return
 
-    # 블루투스 ON
     props = dbus.Interface(bus.get_object(BLUEZ, adapter_path), DBUS_PROP)
     props.Set("org.bluez.Adapter1", "Powered", dbus.Boolean(True))
 
-    # GATT 서비스 등록
     svc = GattService(bus)
     _status_chr = svc.chars[1]
     _code_chr   = svc.chars[2]
@@ -280,7 +288,6 @@ def main():
         error_handler=lambda e: print(f"❌ GATT 오류: {e}")
     )
 
-    # 광고 등록
     ad     = Advertisement(bus, 0)
     ad_mgr = dbus.Interface(
         bus.get_object(BLUEZ, adapter_path), LE_AD_MGR
@@ -292,9 +299,8 @@ def main():
     )
 
     mainloop = GLib.MainLoop()
-    mainloop.run()  # after_wifi에서 GLib.idle_add(mainloop.quit) 호출할 때까지 유지
+    mainloop.run()
 
-    # mainloop 종료 후 main.py 실행
     print("브릿지 서비스 시작...")
     os.execv(sys.executable, [sys.executable, "main.py"])
 
