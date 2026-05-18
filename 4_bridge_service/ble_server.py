@@ -241,6 +241,8 @@ def after_wifi():
 
 # ── Main ─────────────────────────────────────────────────────────────
 def main():
+    subprocess.run(["hciconfig", "hci0", "noscan"], capture_output=True)
+
     global mainloop, _status_chr, _code_chr
 
     print("=" * 50)
