@@ -41,10 +41,10 @@ def _to_dbus_bytes(s):
 # ── Advertisement ────────────────────────────────────────────────────
 class Advertisement(dbus.service.Object):
     def __init__(self, bus, index):
-        self.path  = f"/org/eyecatch/ad{index}"
-        self._name = f"EyeCatch-{str(uuid.uuid4())[:4].upper()}"
+        self.path     = f"/org/eyecatch/ad{index}"
+        self._ad_name = f"EyeCatch-{str(uuid.uuid4())[:4].upper()}"
         dbus.service.Object.__init__(self, bus, self.path)
-        print(f"📡 BLE 광고 이름: {self._name}")
+        print(f"📡 BLE 광고 이름: {self._ad_name}")
 
     def get_path(self):
         return dbus.ObjectPath(self.path)
@@ -53,7 +53,7 @@ class Advertisement(dbus.service.Object):
     def GetAll(self, iface):
         return {
             "Type":           dbus.String("peripheral"),
-            "LocalName":      dbus.String(self._name),
+            "LocalName":      dbus.String(self._ad_name),
             "ServiceUUIDs":   dbus.Array([SERVICE_UUID], signature="s"),
             "IncludeTxPower": dbus.Boolean(True),
         }
