@@ -20,13 +20,12 @@ import time
 def is_wifi_connected() -> bool:
     try:
         result = subprocess.run(
-            ["nmcli", "-t", "-f", "STATE", "general"],
+            ["nmcli", "-t", "-f", "TYPE,STATE", "connection", "show", "--active"],
             capture_output=True, text=True, timeout=5
         )
-        return "connected" in result.stdout
+        return "wifi:activated" in result.stdout
     except Exception:
         return True
-
 
 def main():
     print("=" * 50)
