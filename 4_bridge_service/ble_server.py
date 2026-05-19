@@ -234,10 +234,10 @@ def connect_wifi(ssid, password):
             capture_output=True
         )
         r = subprocess.run(
-            ["sudo", "nmcli", "device", "wifi", "connect", ssid, 
-            "password", password, "key-mgmt", "wpa-psk"],
-            capture_output=True, text=True, timeout=30
-        )
+    ["sudo", "nmcli", "device", "wifi", "connect", ssid,
+     "password", password, "name", ssid],
+    capture_output=True, text=True, timeout=30
+)
         if r.returncode == 0:
             print("✅ 와이파이 성공")
             _send_status("wifi_ok")
