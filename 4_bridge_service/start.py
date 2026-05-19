@@ -23,9 +23,9 @@ def is_wifi_connected() -> bool:
             ["nmcli", "-t", "-f", "TYPE,STATE", "connection", "show", "--active"],
             capture_output=True, text=True, timeout=5
         )
-        return "wifi:activated" in result.stdout
+        return "802-11-wireless:activated" in result.stdout
     except Exception:
-        return True
+        return False
 
 def main():
     print("=" * 50)
