@@ -20,13 +20,15 @@ PROVISION_CHAR_UUID = "0000ec01-0000-1000-8000-00805f9b34fb"
 STATUS_CHAR_UUID    = "0000ec02-0000-1000-8000-00805f9b34fb"
 CODE_CHAR_UUID      = "0000ec03-0000-1000-8000-00805f9b34fb"
 
-BLUEZ     = "org.bluez"
-DBUS_OM   = "org.freedesktop.DBus.ObjectManager"
-DBUS_PROP = "org.freedesktop.DBus.Properties"
-GATT_SVC  = "org.bluez.GattService1"
-GATT_CHR  = "org.bluez.GattCharacteristic1"
-LE_AD_MGR = "org.bluez.LEAdvertisingManager1"
-LE_AD     = "org.bluez.LEAdvertisement1"
+BLUEZ      = "org.bluez"
+DBUS_OM    = "org.freedesktop.DBus.ObjectManager"
+DBUS_PROP  = "org.freedesktop.DBus.Properties"
+GATT_SVC   = "org.bluez.GattService1"
+GATT_CHR   = "org.bluez.GattCharacteristic1"
+LE_AD_MGR  = "org.bluez.LEAdvertisingManager1"
+LE_AD      = "org.bluez.LEAdvertisement1"
+AGENT_IFACE = "org.bluez.Agent1"
+AGENT_MGR   = "org.bluez.AgentManager1"
 
 mainloop           = None
 received_wifi_data = None
@@ -48,6 +50,38 @@ def _send_code(code):
     """GLib 메인루프에서 안전하게 코드 전송"""
     if _code_chr:
         GLib.idle_add(_code_chr.send, code)
+
+
+# ── NoInputNoOutput Agent ────────────────────────────────────────────
+# 페어링 요청을 자동 수락하고, 앱에서 OS 페어링 팝업이 뜨지 않도록 함
+AGENT_PATH = "/org/eyecatch/agent"
+
+class NoIoAgent(dbus.service.Object):
+    @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
+    def Release(self):
+        pass
+
+    @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
+    def AuthorizeService(self, device, uuid):
+        print(f"🔓 AuthorizeService: {device} {uuid}")
+
+    @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="")
+    def RequestAuthorization(self, device):
+        print(f"🔓 RequestAuthorization: {device}")
+
+    @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
+    def Cancel(self):
+        pass
+
+
+def register_agent(bus):
+    agent = NoIoAgent(bus, AGENT_PATH)
+    agent_mgr = dbus.Interface(
+        bus.get_object(BLUEZ, "/org/bluez"), AGENT_MGR
+    )
+    agent_mgr.RegisterAgent(AGENT_PATH, "NoInputNoOutput")
+    agent_mgr.RequestDefaultAgent(AGENT_PATH)
+    print("✅ NoInputNoOutput Agent 등록 완료")
 
 
 # ── Advertisement ────────────────────────────────────────────────────
