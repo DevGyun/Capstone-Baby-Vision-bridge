@@ -18,17 +18,14 @@ import time
 
 
 def is_wifi_connected() -> bool:
-    """와이파이 연결 여부 확인"""
     try:
         result = subprocess.run(
-            ["wpa_cli", "-i", "wlan0", "status"],
+            ["nmcli", "-t", "-f", "TYPE,STATE", "connection", "show", "--active"],
             capture_output=True, text=True, timeout=5
         )
-        return "wpa_state=COMPLETED" in result.stdout
+        return "802-11-wireless:activated" in result.stdout
     except Exception:
-        # wpa_cli 없으면 (노트북 등) 연결된 것으로 간주
-        return True
-
+        return False
 
 def main():
     print("=" * 50)

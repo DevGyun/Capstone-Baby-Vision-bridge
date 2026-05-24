@@ -19,7 +19,7 @@ def detect_camera_source():
         pass
 
     # 2. 웹캠 (테스트용 fallback)
-    for index in range(3):
+    for index in range(10):
         cap = cv2.VideoCapture(index)
         if cap.isOpened():
             cap.release()
