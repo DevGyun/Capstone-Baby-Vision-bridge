@@ -41,8 +41,8 @@ def main():
         bridge.main()
     else:
         print("📶 와이파이 미연결 → BLE 셋업 시작")
-        import ble_server
-        ble_server.main()
+        import ble_surver
+        ble_surver.main()
 
 
 if __name__ == "__main__":
