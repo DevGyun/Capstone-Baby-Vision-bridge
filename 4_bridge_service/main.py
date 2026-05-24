@@ -125,14 +125,19 @@ def register_bridge(bridge_id: str):
 # ──────────────────────────────────────────
 
 def wait_for_pairing(bridge_id: str) -> str:
-    """
-    GET /bridges/{bridge_id}/status 폴링
-    paired 되면 stream_url 반환
-    expired 되면 재등록 후 다시 대기
-    """
     print("⏳ 앱에서 페어링 대기 중...\n")
+    
+    start_time = time.time()
+    TIMEOUT = 60  # 1분
 
     while True:
+        # 1분 초과 시 BLE 모드로 전환
+        if time.time() - start_time > TIMEOUT:
+            print("⏰ 1분 초과 → BLE 모드로 전환합니다...")
+            import ble_server
+            ble_server.main()
+            return  # ble_server.main()이 execv로 main.py 다시 실행함
+
         data = check_status(bridge_id)
 
         if data:
@@ -147,8 +152,6 @@ def wait_for_pairing(bridge_id: str) -> str:
             elif status == "expired":
                 print("⚠️  페어링 코드가 만료됐어요. 새 코드를 발급합니다...")
                 register_bridge(bridge_id)
-
-            # pending이면 그냥 대기
 
         time.sleep(POLL_INTERVAL)
 
