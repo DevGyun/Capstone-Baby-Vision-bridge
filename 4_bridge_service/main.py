@@ -91,10 +91,21 @@ def register_bridge(bridge_id: str):
 
 # ── STEP 3: 페어링 될 때까지 폴링 ───────────────────────
 def wait_for_pairing(bridge_id: str) -> str:
-    """앱이 코드를 입력해 paired 될 때까지 폴링한다.
-    와이파이가 연결된 상태이므로 BLE 전환은 필요 없다."""
+    """앱이 토큰을 받아 paired 될 때까지 폴링한다.
+    TIMEOUT 안에 페어링이 안 되면 BLE 광고로 전환한다.
+    (와이파이가 있어도, 등록된 기기가 없으면 BLE로 토큰을 넘기기 위함)"""
     print("⏳ 앱에서 페어링 대기 중...\n")
+
+    start_time = time.time()
+    TIMEOUT = 60  # 1분
+
     while True:
+        if time.time() - start_time > TIMEOUT:
+            print("⏰ 1분 초과 → BLE 광고 모드로 전환합니다...")
+            import ble_server
+            ble_server.main()   # 내부 mainloop 동안 블로킹, 끝나면 os.execv로 main.py 재시작
+            sys.exit(0)         # execv가 실패하더라도 main이 카메라 잡으러 내려가지 않게 종료
+
         data = check_status(bridge_id)
         if data:
             status = data.get("status")
@@ -103,8 +114,9 @@ def wait_for_pairing(bridge_id: str) -> str:
                 print(f"✅ 페어링 완료!\n   stream_url: {stream_url}")
                 return stream_url
             elif status == "expired":
-                print("⚠️  페어링 코드가 만료됐어요. 새 코드를 발급합니다...")
+                print("⚠️  코드가 만료됐어요. 새로 발급합니다...")
                 register_bridge(bridge_id)
+
         time.sleep(POLL_INTERVAL)
 
 
