@@ -97,11 +97,11 @@ def wait_for_pairing(bridge_id: str) -> str:
     print("⏳ 앱에서 페어링 대기 중...\n")
 
     start_time = time.time()
-    TIMEOUT = 60  # 1분
+    TIMEOUT = 20  # 20초
 
     while True:
         if time.time() - start_time > TIMEOUT:
-            print("⏰ 1분 초과 → BLE 광고 모드로 전환합니다...")
+            print("⏰ 20초 초과 → BLE 광고 모드로 전환합니다...")
             import ble_server
             ble_server.main()   # 내부 mainloop 동안 블로킹, 끝나면 os.execv로 main.py 재시작
             sys.exit(0)         # execv가 실패하더라도 main이 카메라 잡으러 내려가지 않게 종료
