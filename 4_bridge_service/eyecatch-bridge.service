@@ -1,6 +1,5 @@
 [Unit]
 Description=EyeCatch Bridge Service
-# 네트워크 없이도 실행 가능 (BLE 모드 대응)
 After=multi-user.target bluetooth.target
 Wants=bluetooth.target
 
@@ -8,13 +7,12 @@ Wants=bluetooth.target
 Type=simple
 User=root
 WorkingDirectory=/home/pi/Capstone-Baby-Vision-bridge/4_bridge_service
+ExecStartPre=/usr/sbin/rfkill unblock bluetooth
+ExecStartPre=/usr/bin/hciconfig hci0 up
+ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/python3 /home/pi/Capstone-Baby-Vision-bridge/4_bridge_service/start.py
-
-# 실패 시 5초 후 자동 재시작
 Restart=on-failure
 RestartSec=5
-
-# 로그 확인: journalctl -u eyecatch-bridge -f
 StandardOutput=journal
 StandardError=journal
 
