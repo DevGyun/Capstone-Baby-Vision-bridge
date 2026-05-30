@@ -128,14 +128,14 @@ def wait_for_pairing(bridge_id: str) -> str:
     print("⏳ 앱에서 페어링 대기 중...\n")
     
     start_time = time.time()
-    TIMEOUT = 60  # 1분
+    TIMEOUT = 30  # 30초
 
     while True:
         # 1분 초과 시 BLE 모드로 전환
         if time.time() - start_time > TIMEOUT:
             print("⏰ 1분 초과 → BLE 모드로 전환합니다...")
             subprocess.Popen(["/usr/bin/python3", "/home/pi/Capstone-Baby-Vision-bridge/4_bridge_service/ble_server.py"])
-            return
+            sys.exit(0)
 
         data = check_status(bridge_id)
 
