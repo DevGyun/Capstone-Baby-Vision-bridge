@@ -302,12 +302,28 @@ def after_wifi():
 def main():
     global mainloop, _status_chr, _code_chr
 
-    r1 = subprocess.run(["hciconfig", "hci0", "noscan"], capture_output=True, text=True)
-    print(f"[INIT] hciconfig noscan: rc={r1.returncode} err={r1.stderr.strip()}")
-    r2 = subprocess.run(["hciconfig", "hci0", "noauth", "noencrypt"], capture_output=True, text=True)
-    print(f"[INIT] hciconfig noauth noencrypt: rc={r2.returncode} err={r2.stderr.strip()}")
-    r3 = subprocess.run(["btmgmt", "bondable", "off"], capture_output=True, text=True)
-    print(f"[INIT] btmgmt bondable off: rc={r3.returncode} out={r3.stdout.strip()}")
+    try:
+        r1 = subprocess.run(["hciconfig", "hci0", "noscan"],
+                            capture_output=True, text=True, timeout=5)
+        print(f"[INIT] hciconfig noscan: rc={r1.returncode} err={r1.stderr.strip()}")
+    except Exception as e:
+        print(f"[INIT] hciconfig noscan: skip ({e})")
+
+    try:
+        r2 = subprocess.run(["hciconfig", "hci0", "noauth", "noencrypt"],
+                            capture_output=True, text=True, timeout=5)
+        print(f"[INIT] hciconfig noauth noencrypt: rc={r2.returncode} err={r2.stderr.strip()}")
+    except Exception as e:
+        print(f"[INIT] hciconfig noauth noencrypt: skip ({e})")
+
+    try:
+        r3 = subprocess.run(["btmgmt", "bondable", "off"],
+                            capture_output=True, text=True, timeout=5)
+        print(f"[INIT] btmgmt bondable off: rc={r3.returncode} out={r3.stdout.strip()}")
+    except subprocess.TimeoutExpired:
+        print("[INIT] btmgmt bondable off: timeout (skip)")
+    except Exception as e:
+        print(f"[INIT] btmgmt bondable off: skip ({e})")
 
     print("=" * 50)
     print("🔵 EyeCatch BLE Setup 시작")
