@@ -135,7 +135,7 @@ def wait_for_pairing(bridge_id: str) -> str:
         if time.time() - start_time > TIMEOUT:
             print("⏰ 1분 초과 → BLE 모드로 전환합니다...")
         import os, sys
-        os.execv(sys.executable, [sys.executable, "ble_server.py"])
+        os.execv("/usr/bin/python3", ["/usr/bin/python3", "ble_server.py"])
 
         data = check_status(bridge_id)
 
