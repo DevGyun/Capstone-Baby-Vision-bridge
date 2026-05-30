@@ -134,8 +134,8 @@ def wait_for_pairing(bridge_id: str) -> str:
         # 1분 초과 시 BLE 모드로 전환
         if time.time() - start_time > TIMEOUT:
             print("⏰ 1분 초과 → BLE 모드로 전환합니다...")
-        import os, sys
-        os.execv("/usr/bin/python3", ["/usr/bin/python3", "ble_server.py"])
+            subprocess.Popen(["/usr/bin/python3", "/home/pi/Capstone-Baby-Vision-bridge/4_bridge_service/ble_server.py"])
+            return
 
         data = check_status(bridge_id)
 
